@@ -36,9 +36,25 @@ const generateHashes = async (count) => {
     return hashes;
 };
 
+const hashCompare = (hash) => {
+    const letters = hash.match(/[a-zA-Z]/g); //Match for all letters upper & lower case
+    const numbers = hash.match(/\d/g); //Match for all numbers
+    return {
+        letters: letters ? letters.length : 0,
+        numbers: numbers ? numbers.length : 0
+    };
+};
+
 const numberOfHashes = 20;
 const filename = 'hashes.txt';
 
 generateHashes(numberOfHashes)
-    .then(hashes => writeToFile(filename, hashes.join('\n')))
+    .then(async hashes => {
+        const hashInfo = [];
+        for(const hash of hashes){
+            const {letters, numbers} = hashCompare(hash);
+            hashInfo.push(`${hash} - Letters: ${letters}, Numbers: ${numbers}`);
+        }
+        await writeToFile(filename, hashInfo.join('\n'));
+    })
     .catch(error => console.error('Error generating hashes:', error));
