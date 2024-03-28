@@ -28,12 +28,22 @@ const generateUniqueData = () => {
 
 const generateHashes = async (count) => {
     const hashes = [];
+    let totalLetters = 0;
+    let totalNumbers = 0;
+
     for (let i = 0; i < count; i++) {
         const data = generateUniqueData();
         const hash = await hashValue(data);
         hashes.push(hash);
+
+        const { letters, numbers } = hashCompare(hash);
+        totalLetters += letters;
+        totalNumbers += numbers;
     }
-    return hashes;
+
+    const averageLetters = totalLetters / count;
+    const averageNumbers = totalNumbers / count;
+    return { hashes, averageLetters, averageNumbers };
 };
 
 const hashCompare = (hash) => {
@@ -45,16 +55,17 @@ const hashCompare = (hash) => {
     };
 };
 
-const numberOfHashes = 20;
+const numberOfHashes = 2000;
 const filename = 'hashes.txt';
 
 generateHashes(numberOfHashes)
-    .then(async hashes => {
+    .then(async ({ hashes, averageLetters, averageNumbers }) => {
         const hashInfo = [];
         for(const hash of hashes){
             const {letters, numbers} = hashCompare(hash);
             hashInfo.push(`${hash} - Letters: ${letters}, Numbers: ${numbers}`);
         }
-        await writeToFile(filename, hashInfo.join('\n'));
+        const summary = `Average Letters: ${averageLetters.toFixed(2)}, Average Numbers: ${averageNumbers.toFixed(2)}`;
+        await writeToFile(filename, `${hashInfo.join('\n')}\n\n${summary}`);
     })
     .catch(error => console.error('Error generating hashes:', error));
