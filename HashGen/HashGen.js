@@ -18,19 +18,27 @@ const writeToFile = async (filename, data) => {
     }
 };
 
-const generateHashes = async (count, data) => {
+const generateUniqueData = () => {
+    return JSON.stringify({
+        a: Math.random().toString(36).substring(2), // Random string
+        b: [Math.random(), Math.random(), Math.random(), Math.random()], // Random array
+        foo: { c: Math.random().toString(36).substring(2) } // Random object
+    });
+};
+
+const generateHashes = async (count) => {
     const hashes = [];
     for (let i = 0; i < count; i++) {
+        const data = generateUniqueData();
         const hash = await hashValue(data);
         hashes.push(hash);
     }
     return hashes;
 };
 
-const data = JSON.stringify({ a: 'a', b: [1, 2, 3, 4], foo: { c: 'bar' } });
-const numberOfHashes = 5;
+const numberOfHashes = 20;
 const filename = 'hashes.txt';
 
-generateHashes(numberOfHashes, data)
+generateHashes(numberOfHashes)
     .then(hashes => writeToFile(filename, hashes.join('\n')))
     .catch(error => console.error('Error generating hashes:', error));
