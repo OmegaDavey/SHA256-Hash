@@ -55,17 +55,58 @@ const hashCompare = (hash) => {
     };
 };
 
+const checkDuplicates = async (filename) => {
+    try {
+        const fileContent = await fs.readFile(filename, 'utf-8');
+        const lines = fileContent.split('\n');
+
+        const hashes = [];
+        for (const line of lines) {
+            const match = line.match(/^([a-f0-9]+) -/);
+            if (match) {
+                hashes.push(match[1]);
+            }
+        }
+
+        const uniqueHashes = new Set(hashes);
+        if (uniqueHashes.size !== hashes.length) {
+            console.log('Duplicate hashes found:');
+            const duplicates = {};
+            let status = '';
+            hashes.forEach(hash => {
+                if (duplicates[hash]) {
+                    duplicates[hash]++;
+                } else {
+                    duplicates[hash] = 1;
+                }
+            });
+            Object.entries(duplicates).forEach(([hash, count]) => {
+                if (count > 1) {
+                    let status = (`${hash} - Count: ${count}`);
+                }
+            });
+        } else {
+            let status = ('\nNo duplicate hashes found.')
+        }
+    } catch (error) {
+        console.error(`Error reading file ${filename}:`, error);
+    }
+};
+
 const numberOfHashes = 2000;
 const filename = 'hashes.txt';
 
 generateHashes(numberOfHashes)
-    .then(async ({ hashes, averageLetters, averageNumbers }) => {
+    .then(async ({ hashes, averageLetters, averageNumbers, status}) => {
         const hashInfo = [];
         for(const hash of hashes){
             const {letters, numbers} = hashCompare(hash);
             hashInfo.push(`${hash} - Letters: ${letters}, Numbers: ${numbers}`);
         }
         const summary = `Average Letters: ${averageLetters.toFixed(2)}, Average Numbers: ${averageNumbers.toFixed(2)}`;
-        await writeToFile(filename, `${hashInfo.join('\n')}\n\n${summary}`);
+        checkDuplicates(filename)
+        const summaryDupes = `Status: ${status}`;
+        await writeToFile(filename, `${hashInfo.join('\n')}\n\n${summary}\n\n${summaryDupes}`);
     })
     .catch(error => console.error('Error generating hashes:', error));
+
