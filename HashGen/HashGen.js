@@ -9,41 +9,12 @@ const hashValue = val =>
         )
     );
 
-const writeToFile = async (filename, data) => {
-    try {
-        await fs.writeFile(filename, data);
-        console.log(`Hashes have been written to ${filename}`);
-    } catch (error) {
-        console.error(`Error writing to ${filename}:`, error);
-    }
-};
-
 const generateUniqueData = () => {
     return JSON.stringify({
         a: Math.random().toString(36).substring(2), // Random string
         b: [Math.random(), Math.random(), Math.random(), Math.random()], // Random array
         foo: { c: Math.random().toString(36).substring(2) } // Random object
     });
-};
-
-const generateHashes = async (count) => {
-    const hashes = [];
-    let totalLetters = 0;
-    let totalNumbers = 0;
-
-    for (let i = 0; i < count; i++) {
-        const data = generateUniqueData();
-        const hash = await hashValue(data);
-        hashes.push(hash);
-
-        const { letters, numbers } = hashCompare(hash);
-        totalLetters += letters;
-        totalNumbers += numbers;
-    }
-
-    const averageLetters = totalLetters / count;
-    const averageNumbers = totalNumbers / count;
-    return { hashes, averageLetters, averageNumbers };
 };
 
 const hashCompare = (hash) => {
@@ -55,24 +26,38 @@ const hashCompare = (hash) => {
     };
 };
 
-const checkDuplicates = async (filename) => {
-    try {
-        const fileContent = await fs.readFile(filename, 'utf-8');
-        const lines = fileContent.split('\n');
+const generateHashes = async (filename, count) => {
+    let totalLetters = 0;
+    let totalNumbers = 0;
 
+    try {
         const hashes = [];
-        for (const line of lines) {
-            const match = line.match(/^([a-f0-9]+) -/);
-            if (match) {
-                hashes.push(match[1]);
-            }
+        for (let i = 0; i < count; i++) {
+            const data = generateUniqueData();
+            const hash = await hashValue(data);
+            hashes.push(hash);
+
+            const { letters, numbers } = hashCompare(hash);
+            totalLetters += letters;
+            totalNumbers += numbers;
         }
 
+        const averageLetters = totalLetters / count;
+        const averageNumbers = totalNumbers / count;
+
+        const hashInfo = hashes.map(hash => {
+            const { letters, numbers } = hashCompare(hash);
+            return `${hash} - Letters: ${letters}, Numbers: ${numbers}`;
+        });
+
+        const summary = `Average Letters: ${averageLetters.toFixed(2)}, Average Numbers: ${averageNumbers.toFixed(2)}`;
+
+        await fs.writeFile(filename, `${hashInfo.join('\n')}\n\n${summary}\n\n`);
+
+        // Check for duplicates
         const uniqueHashes = new Set(hashes);
         if (uniqueHashes.size !== hashes.length) {
-            console.log('Duplicate hashes found:');
             const duplicates = {};
-            let status = '';
             hashes.forEach(hash => {
                 if (duplicates[hash]) {
                     duplicates[hash]++;
@@ -80,33 +65,24 @@ const checkDuplicates = async (filename) => {
                     duplicates[hash] = 1;
                 }
             });
+            let result = 'Duplicate hashes found:\n';
             Object.entries(duplicates).forEach(([hash, count]) => {
                 if (count > 1) {
-                    let status = (`${hash} - Count: ${count}`);
+                    result += `${hash} - Count: ${count}\n`;
                 }
             });
+            await fs.appendFile(filename, result);
         } else {
-            let status = ('\nNo duplicate hashes found.')
+            await fs.appendFile(filename, 'No duplicate hashes found.\n');
         }
+
+        console.log(`Data has been written to ${filename}`);
     } catch (error) {
-        console.error(`Error reading file ${filename}:`, error);
+        console.error(`Error generating hashes or writing to ${filename}:`, error);
     }
 };
 
 const numberOfHashes = 2000;
 const filename = 'hashes.txt';
 
-generateHashes(numberOfHashes)
-    .then(async ({ hashes, averageLetters, averageNumbers, status}) => {
-        const hashInfo = [];
-        for(const hash of hashes){
-            const {letters, numbers} = hashCompare(hash);
-            hashInfo.push(`${hash} - Letters: ${letters}, Numbers: ${numbers}`);
-        }
-        const summary = `Average Letters: ${averageLetters.toFixed(2)}, Average Numbers: ${averageNumbers.toFixed(2)}`;
-        checkDuplicates(filename)
-        const summaryDupes = `Status: ${status}`;
-        await writeToFile(filename, `${hashInfo.join('\n')}\n\n${summary}\n\n${summaryDupes}`);
-    })
-    .catch(error => console.error('Error generating hashes:', error));
-
+generateHashes(filename, numberOfHashes);
