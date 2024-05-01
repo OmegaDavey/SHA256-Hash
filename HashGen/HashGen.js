@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const { Worker } = require('worker_threads');
 var startTime = performance.now()
+
 const hashValue = val => {
     return new Promise(resolve => {
         setTimeout(() => resolve(crypto.createHash('sha256').update(val).digest('hex')), 0);
@@ -67,6 +68,22 @@ const generateHashes = async (filename, count, numberOfThreads) => {
     }
 };
 
+const readAndHashFile = async (filename) => {
+    try {
+        const data = await fs.readFile(filename, 'utf-8');
+        const hash = await hashValue(data);
+        const { letters, numbers } = hashCompare(hash);
+        const hashInfo = `${hash} - Letters: ${letters}, Numbers: ${numbers}`;
+        await fs.writeFile('textToHash.txt', hashInfo); // Clear the file and write the new hash
+        console.log(`Hash of ${filename} has been written to textToHash.txt`);
+    } catch (error) {
+        console.error(`Error reading or hashing ${filename}:`, error);
+    }
+};
+
+const filename2 = 'example.txt';
+readAndHashFile(filename2);
+
 const hashCompare = (hash) => {
     const letters = hash.match(/[a-zA-Z]/g);
     const numbers = hash.match(/\d/g);
@@ -79,4 +96,8 @@ const numberOfHashes = 2000;
 const numberOfThreads = 4; 
 const filename = 'hashes.txt';
 
+
+
 generateHashes(filename, numberOfHashes, numberOfThreads);
+readAndHashFile(filename2);
+exports.generateHashes = generateHashes;
